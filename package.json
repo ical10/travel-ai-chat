@@ -1,0 +1,13 @@
+{
+	"private": true,
+	"scripts": {
+		"dev": "concurrently \"cd frontend && npm run dev\" \"cd backend && ./gradlew bootRun\"",
+		"build": "cd frontend && npm run build && cp -r dist/* ../backend/src/main/resources/static/",
+		"prettier": "cd frontend && npx prettier --write \"src/**/*.{ts,tsx}\""
+	},
+	"devDependencies": {
+		"prettier": "^3.8.1",
+		"@trivago/prettier-plugin-sort-imports": "^6.0.2",
+		"concurrently": "^9.2.1"
+	}
+}
