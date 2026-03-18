@@ -1,0 +1,52 @@
+# Shared config
+spring:
+  application:
+    name: travel-ai-chat
+
+  # H2 in-memory for dev env
+  datasource:
+    url: jdbc:h2:mem:travelai
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  h2:
+    console:
+      enabled: true # accessible at /h2-console
+
+  # Google OAuth2 (server-side session-based)
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+          client-id: ${GOOGLE_CLIENT_ID}
+          client-secret: ${GOOGLE_CLIENT_SECRET}
+          scope: openid, profile, email
+
+  # xAI Grok via OpenAI-compatible API
+  ai:
+    openai:
+      api-key: ${XAI_API_KEY}
+      base-url: https://api.x.ai
+      chat:
+        options:
+          model: grok-3
+
+  # MCP client: connects to Trivago via SSE
+  mcp:
+    client:
+      enabled: true
+      type: SYNC
+      toolcallback:
+        enabled: true
+      sse:
+        connections:
+          trivago:
+            url: https://mcp.trivago.com
+            sse-endpoint: /mcp
+
+server:
+  port: 8080
