@@ -1,6 +1,9 @@
 package com.travelai.controller;
 
 import com.travelai.service.TravelAgent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api")
 public class ChatController {
+  private static final Logger log = LoggerFactory.getLogger(ChatController.class);
   private final TravelAgent travelAgent;
 
   public ChatController(TravelAgent travelAgent) {
@@ -26,8 +30,16 @@ public class ChatController {
    * @return the AI-generated response with hotel search results and Trivago links
    */
   @PostMapping("/chat")
-  public String chat(@AuthenticationPrincipal OAuth2User principal, @RequestBody String message) {
+  public ResponseEntity<String> chat(
+      @AuthenticationPrincipal OAuth2User principal, @RequestBody String message) {
     String userId = principal.getAttribute("sub");
-    return travelAgent.chat(userId, message);
+    log.info("Chat request from user={} message={}", userId, message);
+    try {
+      String response = travelAgent.chat(userId, message);
+      return ResponseEntity.ok(response);
+    } catch (Exception e) {
+      log.error("Chat failed for user={}: {}", userId, e.getMessage(), e);
+      return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+    }
   }
 }
