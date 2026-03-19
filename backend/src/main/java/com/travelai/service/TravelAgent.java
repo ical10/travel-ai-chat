@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class TravelAgent {
@@ -19,8 +20,15 @@ public class TravelAgent {
     this.userRepo = userRepo;
   }
 
+  @Transactional
   public String chat(String userId, String message) {
-    User user = userRepo.findById(userId).orElseThrow();
+    User user =
+        userRepo
+            .findById(userId)
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "User not found: " + userId + ". Try logging in again."));
     String prefs = user.getPreferences() != null ? user.getPreferences() : "{}";
 
     // Generate prompt object
@@ -28,7 +36,8 @@ public class TravelAgent {
         chatClient
             .prompt()
             .system(
-                "You are a travel assistant. User preferences: "
+                "You are a travel assistant. You give concise answers in a light and cheerful tone"
+                    + " to set a happy mood. User preferences: "
                     + prefs
                     + "Use Trivago tools for all hotel searches. Always include the"
                     + " accommodation_url (trivago link) for each hotel in your response. Always"
