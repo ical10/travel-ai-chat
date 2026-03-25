@@ -1,6 +1,7 @@
 package com.travelai.config;
 
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -16,6 +17,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 public class SecurityConfig {
   private final OAuth2UserService<OidcUserRequest, OidcUser> oidcUserService;
+
+  @Value("${app.base-url:http://localhost:5173}")
+  private String baseUrl;
 
   public SecurityConfig(OAuth2UserService<OidcUserRequest, OidcUser> oidcUserService) {
     this.oidcUserService = oidcUserService;
@@ -36,7 +40,7 @@ public class SecurityConfig {
             auth -> auth.requestMatchers("/api/**").authenticated().anyRequest().permitAll())
         .oauth2Login(oauth2 -> oauth2
             .userInfoEndpoint(userInfo -> userInfo.oidcUserService(oidcUserService))
-            .defaultSuccessUrl("http://localhost:5173", true));
+            .defaultSuccessUrl(baseUrl, true));
     return http.build();
   }
 
@@ -50,7 +54,7 @@ public class SecurityConfig {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration config = new CorsConfiguration();
-    config.setAllowedOrigins(List.of("http://localhost:5173")); // Vite dev server
+    config.setAllowedOrigins(List.of(baseUrl));
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
     config.setAllowedHeaders(List.of("*"));
     config.setAllowCredentials(true); // needed for session cookies
