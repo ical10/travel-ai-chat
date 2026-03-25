@@ -1,7 +1,8 @@
 {
 	"private": true,
 	"scripts": {
-		"dev": "concurrently \"cd frontend && npm run dev\" \"export $(cat .env | grep -v '^#' | xargs) && cd backend && ./gradlew bootRun -x test\"",
+		"dev": "docker compose up -d && concurrently \"cd frontend && npm run dev\" \"export $(cat .env | grep -v '^#' | xargs) && cd backend && ./gradlew bootRun -x test\"",
+		"dev:stop": "docker compose down",
 		"build": "cd frontend && npm run build && cp -r dist/* ../backend/src/main/resources/static/",
 		"prettier": "cd frontend && npx prettier --write \"src/**/*.{ts,tsx}\""
 	},
