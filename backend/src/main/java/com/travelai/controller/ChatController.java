@@ -1,6 +1,7 @@
 package com.travelai.controller;
 
 import com.travelai.service.TravelAgent;
+import com.travelai.util.UserIdHasher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -33,21 +34,21 @@ public class ChatController {
   @PostMapping("/chat")
   public ResponseEntity<String> chat(
       @AuthenticationPrincipal OAuth2User principal, @RequestBody String message) {
-    String userId = principal.getAttribute("sub");
-    log.info("Chat request from user={} message={}", userId, message);
+    String hashedUserId = UserIdHasher.hash(principal.getAttribute("sub"));
+    log.info("Chat request from user={} message={}", hashedUserId, message);
     try {
-      String response = travelAgent.chat(userId, message);
+      String response = travelAgent.chat(hashedUserId, message);
       return ResponseEntity.ok(response);
     } catch (Exception e) {
-      log.error("Chat failed for user={}: {}", userId, e.getMessage(), e);
+      log.error("Chat failed for user={}: {}", hashedUserId, e.getMessage(), e);
       return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
     }
   }
 
   @GetMapping("/preferences")
   public ResponseEntity<String> getPreferences(@AuthenticationPrincipal OAuth2User principal) {
-    String userId = principal.getAttribute("sub");
-    String prefs = travelAgent.getPreferences(userId);
+    String hashedUserId = UserIdHasher.hash(principal.getAttribute("sub"));
+    String prefs = travelAgent.getPreferences(hashedUserId);
     return ResponseEntity.ok(prefs);
   }
 }

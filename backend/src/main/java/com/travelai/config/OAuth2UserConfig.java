@@ -2,6 +2,7 @@ package com.travelai.config;
 
 import com.travelai.model.User;
 import com.travelai.repository.UserRepository;
+import com.travelai.util.UserIdHasher;
 import java.util.ArrayList;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,14 +29,13 @@ public class OAuth2UserConfig {
     return request -> {
       OidcUser oidcUser = delegate.loadUser(request);
       String sub = oidcUser.getSubject();
+      String hashedSub = UserIdHasher.hash(sub);
       userRepo
-          .findById(sub)
+          .findById(hashedSub)
           .orElseGet(
               () -> {
                 User user = new User();
-                user.setId(sub);
-                user.setEmail(oidcUser.getEmail());
-                user.setName(oidcUser.getFullName());
+                user.setId(hashedSub);
                 user.setPreferences("{}");
                 user.setHistory(new ArrayList<>());
                 return userRepo.save(user);
