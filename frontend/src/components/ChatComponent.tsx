@@ -23,7 +23,11 @@ interface Message {
   content: string;
 }
 
-export function ChatComponent() {
+interface ChatComponentProps {
+  onMessageSent?: () => void;
+}
+
+export function ChatComponent({ onMessageSent }: ChatComponentProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -57,6 +61,7 @@ export function ChatComponent() {
 
       const content = await res.text();
       setMessages((prev) => [...prev, { role: "assistant", content }]);
+      onMessageSent?.();
     } catch {
       setMessages((prev) => [
         ...prev,
