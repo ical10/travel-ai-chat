@@ -33,6 +33,7 @@ repositories {
 dependencies {
 	// Spring Boot
 	implementation("org.springframework.boot:spring-boot-starter-web")
+	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
@@ -41,8 +42,7 @@ dependencies {
 	implementation("org.springframework.ai:spring-ai-starter-mcp-client")
 	implementation("org.springframework.ai:spring-ai-starter-model-openai")
 
-	// Database: H2 (dev) + PostgreSQL (prod)
-	runtimeOnly("com.h2database:h2")
+	// Database: PostgreSQL (dev via Docker, prod via a hosted service)
 	runtimeOnly("org.postgresql:postgresql")
 
 	// Lombok
