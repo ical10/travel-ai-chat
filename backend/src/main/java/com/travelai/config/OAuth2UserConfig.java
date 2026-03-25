@@ -36,6 +36,7 @@ public class OAuth2UserConfig {
                 user.setId(sub);
                 user.setEmail(oidcUser.getEmail());
                 user.setName(oidcUser.getFullName());
+                user.setPreferences("{}");
                 user.setHistory(new ArrayList<>());
                 return userRepo.save(user);
               });
