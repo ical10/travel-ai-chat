@@ -50,6 +50,24 @@ public class TravelAgent {
                         "User not found: " + userId + ". Try logging in again."));
     String prefs = user.getPreferences() != null ? user.getPreferences() : "{}";
 
+    // Build recent search history summary (last 5)
+    List<SearchHistory> pastSearches = user.getHistory();
+    StringBuilder historySummary = new StringBuilder();
+    if (pastSearches != null && !pastSearches.isEmpty()) {
+      historySummary.append(" Recent search history: ");
+      pastSearches.stream()
+          .sorted((a, b) -> b.getTimestamp().compareTo(a.getTimestamp()))
+          .limit(5)
+          .forEach(
+              h ->
+                  historySummary
+                      .append("[\"")
+                      .append(h.getQuery())
+                      .append("\" → ")
+                      .append(h.getResultSummary())
+                      .append("] "));
+    }
+
     // 1. Main chat response with MCP tools
     String response =
         chatClient
@@ -58,9 +76,19 @@ public class TravelAgent {
                 "You are a travel assistant. You give concise answers in a light and cheerful tone"
                     + " to set a happy mood. User preferences: "
                     + prefs
-                    + " Use Trivago tools for all hotel searches. Always include the"
-                    + " accommodation_url (trivago link) for each hotel in your response. Always"
-                    + " suggest 'Best Deals' from user's history if relevant.")
+                    + "."
+                    + historySummary
+                    + " Use Trivago tools for all hotel searches."
+                    + " CRITICAL — For each hotel from the tool response, format EXACTLY:"
+                    + "\n![Hotel Name](EXACT main_image value from tool response)"
+                    + "\n**[Hotel Name](EXACT accommodation_url value from tool response)**"
+                    + " — price_per_night"
+                    + "\n⭐ hotel_rating stars | review_rating/10 (review_count reviews)"
+                    + "\n📍 distance | 🏷️ top_amenities"
+                    + "\nCopy accommodation_url and main_image EXACTLY as returned by the tool."
+                    + " Do NOT modify, shorten, or invent URLs."
+                    + " After listing hotels, add brief conversational commentary."
+                    + " If the user's search history is relevant, suggest best deals.")
             .user(message)
             .call()
             .content();
@@ -118,6 +146,7 @@ public class TravelAgent {
         .orElse("{}");
   }
 
+  @Transactional(readOnly = true)
   public List<SearchHistory> getSearchHistory(String userId) {
     return userRepo
         .findById(userId)
