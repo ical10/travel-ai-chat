@@ -25,36 +25,40 @@ interface Message {
 
 interface ChatComponentProps {
   onMessageSent?: () => void;
+  selectedQuery?: string | null;
+  onSelectedQueryHandled?: () => void;
 }
 
-export function ChatComponent({ onMessageSent }: ChatComponentProps) {
+export function ChatComponent({
+  onMessageSent,
+  selectedQuery,
+  onSelectedQueryHandled,
+}: ChatComponentProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const suggestion = useMemo(
-    () => SUGGESTIONS[Math.floor(Math.random() * SUGGESTIONS.length)],
-    [],
-  );
+  const suggestions = useMemo(() => {
+    const shuffled = [...SUGGESTIONS].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 3);
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!input.trim() || loading) return;
+  async function sendMessage(message: string) {
+    if (!message.trim() || loading) return;
 
-    const userMessage = input.trim();
     setInput("");
-    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
+    setMessages((prev) => [...prev, { role: "user", content: message }]);
     setLoading(true);
 
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: userMessage,
+        body: message,
       });
 
       if (!res.ok) throw new Error("Chat request failed");
@@ -75,23 +79,41 @@ export function ChatComponent({ onMessageSent }: ChatComponentProps) {
     }
   }
 
+  useEffect(() => {
+    if (selectedQuery) {
+      sendMessage(selectedQuery);
+      onSelectedQueryHandled?.();
+    }
+  }, [selectedQuery, onSelectedQueryHandled]);
+
+  function handleSubmit(e: React.SubmitEvent) {
+    e.preventDefault();
+    sendMessage(input.trim());
+  }
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto p-4">
         <div className="space-y-4 max-w-3xl mx-auto">
           {messages.length === 0 && (
             <div className="text-center text-muted-foreground pt-20">
-              <h2 className="text-2xl font-semibold mb-2">
-                Travel AI Assistant
-              </h2>
-              <p>Ask me about hotels anywhere in the world.</p>
-              <p className="mt-4 text-xs">Try this one 👇</p>
-              <button
-                onClick={() => setInput(suggestion)}
-                className="mt-1 text-sm px-4 py-2 rounded-md border border-border hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer animate-pulse hover:animate-none"
-              >
-                &quot;{suggestion}&quot; →
-              </button>
+              <h2 className="text-2xl font-semibold mb-2">Travel AI Chat</h2>
+              <p>
+                Plan your journey with me and I'll give you the best hotel
+                offers.
+              </p>
+              <p className="mt-4 text-xs">Try one of these 👇</p>
+              <div className="mt-2 flex flex-col gap-2 items-center">
+                {suggestions.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => sendMessage(s)}
+                    className="text-sm px-4 py-2 rounded-md border border-border hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
+                  >
+                    &quot;{s}&quot; →
+                  </button>
+                ))}
+              </div>
             </div>
           )}
           {messages.map((msg, i) => (
@@ -115,6 +137,12 @@ export function ChatComponent({ onMessageSent }: ChatComponentProps) {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-primary underline"
+                        />
+                      ),
+                      img: ({ ...props }) => (
+                        <img
+                          {...props}
+                          className="rounded-lg w-full max-h-48 object-cover my-2"
                         />
                       ),
                     }}
