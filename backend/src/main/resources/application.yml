@@ -31,19 +31,14 @@ spring:
       chat:
         options:
           model: grok-3
-
-  # MCP client: connects to Trivago via SSE
-  mcp:
-    client:
-      enabled: true
-      type: SYNC
-      toolcallback:
-        enabled: true
-      sse:
-        connections:
-          trivago:
-            url: https://mcp.trivago.com
-            sse-endpoint: /mcp
+    # Trivago MCP client config using Spring AI with Streamable HTTP
+    mcp:
+      client:
+        streamable-http:
+          connections:
+            trivago:
+              url: https://mcp.trivago.com
+              endpoint: /mcp
 
 server:
   port: 8080
