@@ -1,23 +1,26 @@
 package com.travelai.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.Data;
 import java.time.LocalDateTime;
+import lombok.Data;
 
 @Entity
 @Data
 public class SearchHistory {
-	@Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-	@ManyToOne
-	@JoinColumn(name = "user_id")
-	private User user;
+  @ManyToOne
+  @JoinColumn(name = "user_id")
+  @JsonIgnore
+  private User user;
 
-	private String query;
-	
-	@Column(columnDefinition = "TEXT")
-	private String resultSummary;
+  private String query;
 
-	private LocalDateTime timestamp;
+  @Column(columnDefinition = "TEXT")
+  private String resultSummary;
+
+  private LocalDateTime timestamp;
 }

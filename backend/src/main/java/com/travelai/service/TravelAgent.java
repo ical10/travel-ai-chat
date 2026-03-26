@@ -4,6 +4,7 @@ import com.travelai.model.SearchHistory;
 import com.travelai.model.User;
 import com.travelai.repository.UserRepository;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,5 +116,12 @@ public class TravelAgent {
         .findById(userId)
         .map(u -> u.getPreferences() != null ? u.getPreferences() : "{}")
         .orElse("{}");
+  }
+
+  public List<SearchHistory> getSearchHistory(String userId) {
+    return userRepo
+        .findById(userId)
+        .map(u -> u.getHistory() != null ? u.getHistory() : List.<SearchHistory>of())
+        .orElse(List.<SearchHistory>of());
   }
 }

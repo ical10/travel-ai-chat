@@ -1,7 +1,9 @@
 package com.travelai.controller;
 
+import com.travelai.model.SearchHistory;
 import com.travelai.service.TravelAgent;
 import com.travelai.util.UserIdHasher;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -50,5 +52,13 @@ public class ChatController {
     String hashedUserId = UserIdHasher.hash(principal.getAttribute("sub"));
     String prefs = travelAgent.getPreferences(hashedUserId);
     return ResponseEntity.ok(prefs);
+  }
+
+  @GetMapping("/history")
+  public ResponseEntity<List<SearchHistory>> getHistory(
+      @AuthenticationPrincipal OAuth2User principal) {
+    String hashedUserId = UserIdHasher.hash(principal.getAttribute("sub"));
+    List<SearchHistory> histories = travelAgent.getSearchHistory(hashedUserId);
+    return ResponseEntity.ok(histories);
   }
 }
