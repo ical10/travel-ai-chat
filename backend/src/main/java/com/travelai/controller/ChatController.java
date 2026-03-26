@@ -1,5 +1,6 @@
 package com.travelai.controller;
 
+import com.travelai.dto.ChatResult;
 import com.travelai.model.SearchHistory;
 import com.travelai.service.TravelAgent;
 import com.travelai.util.UserIdHasher;
@@ -34,16 +35,17 @@ public class ChatController {
    * @return the AI-generated response with hotel search results and Trivago links
    */
   @PostMapping("/chat")
-  public ResponseEntity<String> chat(
+  public ResponseEntity<ChatResult> chat(
       @AuthenticationPrincipal OAuth2User principal, @RequestBody String message) {
     String hashedUserId = UserIdHasher.hash(principal.getAttribute("sub"));
     log.info("Chat request from user={} message={}", hashedUserId, message);
     try {
-      String response = travelAgent.chat(hashedUserId, message);
+      ChatResult response = travelAgent.chat(hashedUserId, message);
       return ResponseEntity.ok(response);
     } catch (Exception e) {
       log.error("Chat failed for user={}: {}", hashedUserId, e.getMessage(), e);
-      return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+      return ResponseEntity.internalServerError()
+          .body(new ChatResult("Error: " + e.getMessage(), List.of()));
     }
   }
 
