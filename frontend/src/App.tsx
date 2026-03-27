@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 
 import { Button } from "@/components/ui/button";
 import { ChatComponent } from "@/components/ChatComponent";
+import { Github } from "lucide-react";
 
 interface Preferences {
   budget?: number;
@@ -107,7 +108,17 @@ function App() {
     <div className="h-screen flex flex-col">
       <header className="border-b px-4 py-3 space-y-2">
         <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold">Travel AI Chat</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-semibold">Travel AI Chat</h1>
+            <a
+              href="https://github.com/ical10/travel-ai-chat"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Github size={20} />
+            </a>
+          </div>
           {hasPreferences && (
             <div className="flex items-center gap-2 flex-wrap">
               {preferences.budget && (
