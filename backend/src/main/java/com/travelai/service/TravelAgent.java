@@ -9,6 +9,7 @@ import com.travelai.repository.UserRepository;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -88,9 +89,9 @@ public class TravelAgent {
     // 1. Direct MCP call — raw hotel data
     List<Map<String, Object>> accommodations = searchAccommodationsDirect(message);
 
-    // 2. Grok call — analyze hotel results with user preferences
+    // 2. Grok call — analyze and rank hotel results
     String hotelSummary = buildHotelSummary(accommodations);
-    String response =
+    String grokResponse =
         chatClient
             .prompt()
             .system(
@@ -105,15 +106,46 @@ public class TravelAgent {
                     : message
                         + "\n\nHere are the hotel results found:\n"
                         + hotelSummary
-                        + "\n\n"
-                        + "Based on these results and the user's preferences, provide:\n"
-                        + "1. A brief ranking of the top 3 best deals on clear, separated bullet"
-                        + " points\n"
-                        + "2. Why each is a good match for the user's preferences\n"
-                        + "3. One travel tip for the destination\n"
-                        + "Keep it concise (3-5 sentences). Do NOT include URLs or images.")
+                        + "\n\nReturn ONLY a JSON object with two fields:"
+                        + "\n- \"ranking\": array of accommodation_id values ordered by best"
+                        + " match to user preferences (top 3 minimum, up to 5)"
+                        + "\n- \"commentary\": markdown-formatted text with:"
+                        + "\n  - A one-line intro about the destination"
+                        + "\n  - Numbered list of top picks, each as:"
+                        + " **Hotel Name** — why it's a great match (1 sentence)"
+                        + "\n  - One travel tip at the end"
+                        + "\nDo NOT include URLs or images. Return ONLY valid JSON.")
             .call()
             .content();
+
+    // 3. Parse Grok's response — extract ranking + commentary, reorder accommodations
+    String response;
+    if (!accommodations.isEmpty()) {
+      try {
+        String json = grokResponse.strip();
+        if (json.startsWith("```")) {
+          json = json.replaceAll("^```(?:json)?\\s*", "").replaceAll("```$", "").strip();
+        }
+        if (!json.startsWith("{")) {
+          int start = json.indexOf('{');
+          int end = json.lastIndexOf('}');
+          if (start >= 0 && end > start) json = json.substring(start, end + 1);
+        }
+        Map<String, Object> parsed = objectMapper.readValue(json, new TypeReference<>() {});
+        response = (String) parsed.getOrDefault("commentary", grokResponse);
+
+        @SuppressWarnings("unchecked")
+        List<String> ranking = (List<String>) parsed.get("ranking");
+        if (ranking != null && !ranking.isEmpty()) {
+          accommodations = reorderByRanking(accommodations, ranking);
+        }
+      } catch (Exception e) {
+        log.warn("Failed to parse Grok ranking: {}", e.getMessage());
+        response = grokResponse;
+      }
+    } else {
+      response = grokResponse;
+    }
 
     // 3. Extract preferences from user message
     extractPreferences(user, message);
@@ -283,13 +315,33 @@ public class TravelAgent {
     }
   }
 
+  private List<Map<String, Object>> reorderByRanking(
+      List<Map<String, Object>> accommodations, List<String> rankedIds) {
+    List<Map<String, Object>> reordered = new ArrayList<>();
+    List<Map<String, Object>> remaining = new ArrayList<>(accommodations);
+
+    for (String rankedId : rankedIds) {
+      for (int i = 0; i < remaining.size(); i++) {
+        String id = String.valueOf(remaining.get(i).getOrDefault("accommodation_id", ""));
+        if (id.equals(rankedId)) {
+          reordered.add(remaining.remove(i));
+          break;
+        }
+      }
+    }
+    reordered.addAll(remaining);
+    return reordered;
+  }
+
   private String buildHotelSummary(List<Map<String, Object>> accommodations) {
     StringBuilder sb = new StringBuilder();
     int limit = Math.min(accommodations.size(), 10);
     for (int i = 0; i < limit; i++) {
       Map<String, Object> a = accommodations.get(i);
       sb.append(i + 1)
-          .append(". ")
+          .append(". [")
+          .append(a.getOrDefault("accommodation_id", ""))
+          .append("] ")
           .append(a.getOrDefault("accommodation_name", "Unknown"))
           .append(" — ")
           .append(a.getOrDefault("price_per_night", "?"))
