@@ -3,6 +3,7 @@ package com.travelai.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.travelai.dto.ChatResult;
+import com.travelai.dto.Preferences;
 import com.travelai.model.SearchHistory;
 import com.travelai.model.User;
 import com.travelai.repository.UserRepository;
@@ -400,11 +401,18 @@ public class TravelAgent {
     }
   }
 
-  public String getPreferences(String userId) {
-    return userRepo
-        .findById(userId)
-        .map(u -> u.getPreferences() != null ? u.getPreferences() : "{}")
-        .orElse("{}");
+  public Preferences getPreferences(String userId) {
+    String json =
+        userRepo
+            .findById(userId)
+            .map(u -> u.getPreferences() != null ? u.getPreferences() : "{}")
+            .orElse("{}");
+    try {
+      return objectMapper.readValue(json, Preferences.class);
+    } catch (Exception e) {
+      log.warn("Failed to parse preferences: {}", e.getMessage());
+      return new Preferences(null, null, null, null);
+    }
   }
 
   @Transactional(readOnly = true)

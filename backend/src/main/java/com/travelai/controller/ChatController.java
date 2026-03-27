@@ -1,6 +1,7 @@
 package com.travelai.controller;
 
 import com.travelai.dto.ChatResult;
+import com.travelai.dto.Preferences;
 import com.travelai.model.SearchHistory;
 import com.travelai.service.TravelAgent;
 import com.travelai.util.UserIdHasher;
@@ -50,9 +51,10 @@ public class ChatController {
   }
 
   @GetMapping("/preferences")
-  public ResponseEntity<String> getPreferences(@AuthenticationPrincipal OAuth2User principal) {
+  public ResponseEntity<Preferences> getPreferences(
+      @AuthenticationPrincipal OAuth2User principal) {
     String hashedUserId = UserIdHasher.hash(principal.getAttribute("sub"));
-    String prefs = travelAgent.getPreferences(hashedUserId);
+    Preferences prefs = travelAgent.getPreferences(hashedUserId);
     return ResponseEntity.ok(prefs);
   }
 
