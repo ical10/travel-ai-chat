@@ -94,7 +94,8 @@ export function ChatComponent({
   }, []);
 
   useEffect(() => {
-    if (lastAssistantRef.current) {
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg?.role === "assistant" && lastAssistantRef.current) {
       lastAssistantRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     } else {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -178,13 +179,14 @@ export function ChatComponent({
             </div>
           )}
           {messages.map((msg, i) => {
+            const isLast = i === messages.length - 1;
             const isLastAssistant =
               msg.role === "assistant" &&
               i === messages.map((m) => m.role).lastIndexOf("assistant");
             return (
             <div
               key={i}
-              ref={isLastAssistant ? lastAssistantRef : undefined}
+              ref={isLastAssistant ? lastAssistantRef : isLast ? bottomRef : undefined}
               className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div className="max-w-[80%] space-y-3">
@@ -236,7 +238,6 @@ export function ChatComponent({
               </Card>
             </div>
           )}
-          <div ref={bottomRef} />
         </div>
       </div>
 
