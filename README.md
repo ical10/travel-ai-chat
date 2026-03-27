@@ -72,4 +72,7 @@ JPA's default `LAZY` fetch on `@OneToMany` causes `LazyInitializationException` 
 **`@JsonIgnore` to break circular serialization**
 `User` has `List<SearchHistory>`, and `SearchHistory` has a back-reference to `User`. Without `@JsonIgnore` on `SearchHistory.user`, Jackson enters infinite recursion when serializing the history endpoint. This is a standard JPA/Jackson pattern, not a hack, but still important to note.
 
+### TODO
+
+- [ ] Add proper test coverages on the CI
 
