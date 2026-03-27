@@ -8,7 +8,7 @@ Built primarily to help you find and manage hotel booking effortlessly. Powered 
 - **Frontend**: React 19, Vite 8, TypeScript, Tailwind CSS, shadcn/ui
 - **LLM**: xAI Grok via OpenAI-compatible API
 - **MCP**: Trivago MCP server (Streamable HTTP transport, NOT SSE)
-- **Database**: PostgreSQL (Docker for dev, Railway for prod)
+- **Database**: PostgreSQL (Docker for dev, hosted for prod)
 - **Auth**: Google OAuth2 (session-based, hashed user IDs, no PII stored)
 
 ### Architecture
@@ -44,11 +44,6 @@ GOOGLE_CLIENT_SECRET=...
 XAI_API_KEY=...
 ```
 
-### Improvements
-
-- [ ] Wrap chat API response in JSON (`ChatResponse` record) instead of returning plain text, for structured frontend rendering
-- [ ] Add `GET /api/best-deals` endpoint that calls agent with "Show best deals from my search history"
-- [ ] Fix Trivago `/oar/` URLs redirecting incorrectly (may be localhost/dev issue — retest after deployment)
 ### Hacks / Interesting Workarounds
 
 **Why not let Grok call MCP tools directly?**
@@ -72,7 +67,28 @@ JPA's default `LAZY` fetch on `@OneToMany` causes `LazyInitializationException` 
 **`@JsonIgnore` to break circular serialization**
 `User` has `List<SearchHistory>`, and `SearchHistory` has a back-reference to `User`. Without `@JsonIgnore` on `SearchHistory.user`, Jackson enters infinite recursion when serializing the history endpoint. This is a standard JPA/Jackson pattern, not a hack, but still important to note.
 
-### TODO
+### Improvements
 
-- [ ] Add proper test coverages on the CI
+**UX**
+- [ ] Dark/light mode toggle
+- [ ] Show "No results found" state when MCP returns empty
+- [ ] Loading skeleton instead of "Searching hotels..." text
+- [ ] Show hotel count ("Found 8 hotels in Paris")
 
+**Chat Quality**
+- [ ] Pass stored preferences as MCP `filters` (e.g. `pool: true`, `breakfastIncluded: true`)
+- [ ] Support `children` and `children_ages` params
+- [ ] Support `hotel_rating` and `review_rating` filters from MCP
+
+**Data**
+- [ ] Cap search history (keep last 20, delete older)
+- [ ] Add "clear history" button
+- [ ] Add "clear preferences" button
+
+**Polish**
+- [ ] Show extracted search params before results load ("Searching Paris, 20-24 Dec, 2 adults...")
+- [ ] Add a favicon
+- [ ] Add Open Graph meta tags for link previews
+
+**Infra**
+- [ ] Add proper test coverage on the CI
