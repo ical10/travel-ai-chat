@@ -6,27 +6,76 @@ import { Input } from "@/components/ui/input";
 import ReactMarkdown from "react-markdown";
 
 const SUGGESTIONS = [
-  "Find hotels in Paris under €150 with a pool",
-  "Beach resorts in Bali for 2 adults, budget €100/night",
-  "Pet-friendly hotels in Berlin near public transport",
-  "Luxury spa hotels in Tokyo under $200",
-  "Family-friendly hotels in Barcelona with free breakfast",
-  "Cozy stays in Amsterdam with free WiFi and parking",
-  "Hotels in Rome near the Colosseum under €120",
-  "Mountain lodges in Swiss Alps with gym access",
-  "Boutique hotels in Prague for a weekend trip",
-  "Hotels in Istanbul with rooftop views under €80",
+  "Find me a hotel near the Eiffel Tower with 2 rooms for 2 adults and 2 children aged 5 and 8.",
+  "I need an accommodation in Bali with a pool and high guest rating, from 12 Aug to 20 Aug 2026.",
+  "I'm planning a vacation to Japan in October 2026. Find hotels in Tokyo and Osaka for 2 weeks.",
+  "Search for a pet-friendly hotel near Old Trafford stadium from 15 May 2026 for 3 nights.",
+  "Looking for a budget stay under €80 in Prague with free breakfast, arriving 1 September 2026.",
+  "Find a beachfront resort in Santorini for a couple, from 20 June to 25 June 2026.",
+  "I want a family-friendly hotel in Barcelona near La Sagrada Familia for the Christmas holidays.",
+  "Book a boutique hotel in Amsterdam with parking and WiFi, 10 to 14 November 2026.",
 ];
+
+interface Accommodation {
+  accommodation_name: string;
+  accommodation_url: string;
+  main_image: string;
+  price_per_night: string;
+  price_per_stay: string;
+  hotel_rating: number;
+  review_rating: string;
+  review_count: number;
+  top_amenities: string;
+  distance: string;
+}
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+  accommodations?: Accommodation[];
 }
 
 interface ChatComponentProps {
   onMessageSent?: () => void;
   selectedQuery?: string | null;
   onSelectedQueryHandled?: () => void;
+}
+
+function HotelCard({ hotel }: { hotel: Accommodation }) {
+  return (
+    <a
+      href={hotel.accommodation_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block rounded-lg border border-border overflow-hidden hover:shadow-md transition-shadow"
+    >
+      <img
+        src={hotel.main_image}
+        alt={hotel.accommodation_name}
+        className="w-full h-40 object-cover"
+      />
+      <div className="p-3 space-y-1">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-semibold text-sm leading-tight">
+            {hotel.accommodation_name}
+          </h3>
+          <span className="shrink-0 font-bold text-sm">
+            {hotel.price_per_night}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>{"★".repeat(hotel.hotel_rating)}</span>
+          <span>
+            {hotel.review_rating}/10 ({hotel.review_count} reviews)
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground">{hotel.distance}</p>
+        <p className="text-xs text-muted-foreground truncate">
+          {hotel.top_amenities}
+        </p>
+      </div>
+    </a>
+  );
 }
 
 export function ChatComponent({
@@ -63,8 +112,15 @@ export function ChatComponent({
 
       if (!res.ok) throw new Error("Chat request failed");
 
-      const content = await res.text();
-      setMessages((prev) => [...prev, { role: "assistant", content }]);
+      const data = await res.json();
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: data.message,
+          accommodations: data.accommodations,
+        },
+      ]);
       onMessageSent?.();
     } catch {
       setMessages((prev) => [
@@ -86,7 +142,7 @@ export function ChatComponent({
     }
   }, [selectedQuery, onSelectedQueryHandled]);
 
-  function handleSubmit(e: React.SubmitEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     sendMessage(input.trim());
   }
@@ -121,38 +177,41 @@ export function ChatComponent({
               key={i}
               className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
-              <Card
-                className={`px-4 py-3 max-w-[80%] ${
-                  msg.role === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-card"
-                }`}
-              >
-                {msg.role === "assistant" ? (
-                  <ReactMarkdown
-                    components={{
-                      a: ({ ...props }) => (
-                        <a
-                          {...props}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary underline"
-                        />
-                      ),
-                      img: ({ ...props }) => (
-                        <img
-                          {...props}
-                          className="rounded-lg w-full max-h-48 object-cover my-2"
-                        />
-                      ),
-                    }}
-                  >
-                    {msg.content}
-                  </ReactMarkdown>
-                ) : (
-                  <p>{msg.content}</p>
+              <div className="max-w-[80%] space-y-3">
+                <Card
+                  className={`px-4 py-3 ${
+                    msg.role === "user"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-card"
+                  }`}
+                >
+                  {msg.role === "assistant" ? (
+                    <ReactMarkdown
+                      components={{
+                        a: ({ ...props }) => (
+                          <a
+                            {...props}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary underline"
+                          />
+                        ),
+                      }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
+                  ) : (
+                    <p>{msg.content}</p>
+                  )}
+                </Card>
+                {msg.accommodations && msg.accommodations.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {msg.accommodations.map((hotel, j) => (
+                      <HotelCard key={j} hotel={hotel} />
+                    ))}
+                  </div>
                 )}
-              </Card>
+              </div>
             </div>
           ))}
           {loading && (
@@ -175,7 +234,7 @@ export function ChatComponent({
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about hotels..."
+          placeholder="e.g. I'm looking for a hotel in Berlin from 20 Dec to 24 Dec 2026"
           disabled={loading}
           className="flex-1"
         />
