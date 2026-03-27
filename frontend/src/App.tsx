@@ -90,8 +90,8 @@ function App() {
         <p className="text-muted-foreground">
           Find hotels with the power of AI and Trivago.
         </p>
-        <Button asChild size="lg">
-          <a href="/oauth2/authorization/google">Login with Google</a>
+        <Button size="lg" render={<a href="/oauth2/authorization/google" />}>
+          Login with Google
         </Button>
       </div>
     );
