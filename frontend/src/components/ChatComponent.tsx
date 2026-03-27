@@ -87,13 +87,18 @@ export function ChatComponent({
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const lastAssistantRef = useRef<HTMLDivElement>(null);
   const suggestions = useMemo(() => {
     const shuffled = [...SUGGESTIONS].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, 3);
   }, []);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (lastAssistantRef.current) {
+      lastAssistantRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages, loading]);
 
   async function sendMessage(message: string) {
@@ -172,9 +177,14 @@ export function ChatComponent({
               </div>
             </div>
           )}
-          {messages.map((msg, i) => (
+          {messages.map((msg, i) => {
+            const isLastAssistant =
+              msg.role === "assistant" &&
+              i === messages.map((m) => m.role).lastIndexOf("assistant");
+            return (
             <div
               key={i}
+              ref={isLastAssistant ? lastAssistantRef : undefined}
               className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div className="max-w-[80%] space-y-3">
@@ -205,15 +215,18 @@ export function ChatComponent({
                   )}
                 </Card>
                 {msg.accommodations && msg.accommodations.length > 0 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {msg.accommodations.map((hotel, j) => (
-                      <HotelCard key={j} hotel={hotel} />
-                    ))}
+                  <div className="max-h-[600px] overflow-y-auto rounded-lg">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-1">
+                      {msg.accommodations.map((hotel, j) => (
+                        <HotelCard key={j} hotel={hotel} />
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
           {loading && (
             <div className="flex justify-start">
               <Card className="px-4 py-3 bg-card">
