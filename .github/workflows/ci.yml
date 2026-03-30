@@ -17,8 +17,7 @@ jobs:
           java-version: 21
       - name: Build & test backend
         working-directory: backend
-        # TODO: remove -x test once tests created
-        run: ./gradlew build -x test
+        run: ./gradlew build
 
   frontend:
     runs-on: ubuntu-latest
