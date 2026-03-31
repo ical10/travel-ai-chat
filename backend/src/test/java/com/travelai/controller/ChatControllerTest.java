@@ -3,7 +3,8 @@ package com.travelai.controller;
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oauth2Login;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oidcLogin;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -43,7 +44,7 @@ class ChatControllerTest {
               post("/api/chat")
                   .content("Find hotels in Paris")
                   .contentType("text/plain")
-                  .with(oauth2Login().attributes(attrs -> attrs.put("sub", "google-123"))))
+                  .with(oidcLogin().idToken(token -> token.claim("sub", "google-123"))))
           // 4. Assert the response
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.message").value(genericChat))
