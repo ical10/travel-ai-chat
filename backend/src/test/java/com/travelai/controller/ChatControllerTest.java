@@ -9,7 +9,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.travelai.dto.ChatResult;
+import com.travelai.dto.Preferences;
+import com.travelai.model.SearchHistory;
 import com.travelai.service.TravelAgent;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Nested;
@@ -66,19 +69,87 @@ class ChatControllerTest {
               post("/api/chat")
                   .content("Find hotels in Paris")
                   .contentType("text/plain")
-                  .with(oauth2Login().attributes(attrs -> attrs.put("sub", "google-123"))))
+                  .with(oidcLogin().idToken(token -> token.claim("sub", "google-123"))))
           // 3. Assert the response
           .andExpect(status().isInternalServerError())
           .andExpect(jsonPath("$.message").value(startsWith("Error:")));
     }
 
     @Test
-    void redirectsWhenUnauthenticated() throws Exception {
+    void forbiddenWhenUnauthenticated() throws Exception {
       // No mocking needed because the request never reaches TravelAgent at all,
       // simply check redirect status
       mockMvc
           .perform(post("/api/chat").content("Find hotels in Paris").contentType("text/plain"))
-          .andExpect(status().is3xxRedirection());
+          .andExpect(status().isForbidden());
+    }
+  }
+
+  @Nested
+  class GetPreferences {
+    @Test
+    void returnsPreferencesWhenAuthenticated() throws Exception {
+      // 1. Define hardcoded values and tell mock what to return
+      Preferences prefs = new Preferences(150, "beach", "double", List.of("pool", "wifi"));
+      when(travelAgent.getPreferences(anyString())).thenReturn(prefs);
+      // 2. Send a request with a mocked OAuth2 user
+      mockMvc
+          .perform(
+              get("/api/preferences")
+                  .with(oidcLogin().idToken(token -> token.claim("sub", "google-123"))))
+          // 3. Assert the response
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.budget").value(150))
+          .andExpect(jsonPath("$.style").value("beach"));
+    }
+
+    @Test
+    void forbiddenWhenUnauthenticated() throws Exception {
+      mockMvc.perform(get("/api/preferences")).andExpect(status().isForbidden());
+    }
+  }
+
+  @Nested
+  class GetHistory {
+    @Test
+    void returnsHistoryWhenAuthenticated() throws Exception {
+      // 1. Define hardcoded values
+      SearchHistory h1 = new SearchHistory();
+      h1.setId(1L);
+      h1.setQuery("Hotels in Paris");
+      h1.setResultSummary("Found 8 hotels starting from €95");
+      h1.setTimestamp(LocalDateTime.of(2026, 3, 28, 10, 0));
+
+      SearchHistory h2 = new SearchHistory();
+      h2.setId(2L);
+      h2.setQuery("Beach resorts in Bali");
+      h2.setResultSummary("Found 12 hotels starting from €45");
+      h2.setTimestamp(LocalDateTime.of(2026, 3, 27, 14, 30));
+
+      // 2. Tell mock what to return
+      when(travelAgent.getSearchHistory(anyString())).thenReturn(List.of(h1, h2));
+
+      // 3. Send a request with a mocked OAuth2 user
+      mockMvc
+          .perform(
+              get("/api/history")
+                  .with(oidcLogin().idToken(token -> token.claim("sub", "google-123"))))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$").isArray())
+          .andExpect(jsonPath("$.length()").value(2))
+          .andExpect(jsonPath("$[0].id").value(1))
+          .andExpect(jsonPath("$[0].query").value("Hotels in Paris"))
+          .andExpect(jsonPath("$[0].resultSummary").value("Found 8 hotels starting from €95"))
+          .andExpect(jsonPath("$[0].timestamp").value("2026-03-28T10:00:00"))
+          .andExpect(jsonPath("$[1].id").value(2))
+          .andExpect(jsonPath("$[1].query").value("Beach resorts in Bali"))
+          .andExpect(jsonPath("$[1].resultSummary").value("Found 12 hotels starting from €45"))
+          .andExpect(jsonPath("$[1].timestamp").value("2026-03-27T14:30:00"));
+    }
+
+    @Test
+    void forbiddenWhenUnauthenticated() throws Exception {
+      mockMvc.perform(get("/api/history")).andExpect(status().isForbidden());
     }
   }
 }
