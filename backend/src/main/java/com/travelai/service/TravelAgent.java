@@ -316,7 +316,7 @@ public class TravelAgent {
     }
   }
 
-  private List<Map<String, Object>> reorderByRanking(
+  List<Map<String, Object>> reorderByRanking(
       List<Map<String, Object>> accommodations, List<String> rankedIds) {
     List<Map<String, Object>> reordered = new ArrayList<>();
     List<Map<String, Object>> remaining = new ArrayList<>(accommodations);
@@ -334,7 +334,7 @@ public class TravelAgent {
     return reordered;
   }
 
-  private String buildHotelSummary(List<Map<String, Object>> accommodations) {
+  String buildHotelSummary(List<Map<String, Object>> accommodations) {
     StringBuilder sb = new StringBuilder();
     int limit = Math.min(accommodations.size(), 10);
     for (int i = 0; i < limit; i++) {
