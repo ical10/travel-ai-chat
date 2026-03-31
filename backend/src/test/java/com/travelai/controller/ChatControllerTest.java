@@ -1,5 +1,6 @@
 package com.travelai.controller;
 
+import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oauth2Login;
@@ -43,12 +44,40 @@ class ChatControllerTest {
                   .content("Find hotels in Paris")
                   .contentType("text/plain")
                   .with(oauth2Login().attributes(attrs -> attrs.put("sub", "google-123"))))
+          // 4. Assert the response
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.message").value(genericChat))
           .andExpect(jsonPath("$.accommodations").isArray())
           .andExpect(jsonPath("$.accommodations.length()").value(1))
           .andExpect(jsonPath("$.accommodations[0].accommodation_name").value("Hotel Paris"))
           .andExpect(jsonPath("$.accommodations[0].price_per_night").value("€120"));
+    }
+
+    @Test
+    void returns500WhenServiceThrows() throws Exception {
+      // 1. Tell the mock to throw a server runtime exception
+      when(travelAgent.chat(anyString(), anyString()))
+          .thenThrow(new RuntimeException("Internal server error"));
+
+      // 2. Send a request with a mocked OAuth2 user
+      mockMvc
+          .perform(
+              post("/api/chat")
+                  .content("Find hotels in Paris")
+                  .contentType("text/plain")
+                  .with(oauth2Login().attributes(attrs -> attrs.put("sub", "google-123"))))
+          // 3. Assert the response
+          .andExpect(status().isInternalServerError())
+          .andExpect(jsonPath("$.message").value(startsWith("Error:")));
+    }
+
+    @Test
+    void redirectsWhenUnauthenticated() throws Exception {
+      // No mocking needed because the request never reaches TravelAgent at all,
+      // simply check redirect status
+      mockMvc
+          .perform(post("/api/chat").content("Find hotels in Paris").contentType("text/plain"))
+          .andExpect(status().is3xxRedirection());
     }
   }
 }
