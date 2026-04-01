@@ -2,6 +2,8 @@ package com.travelai.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.travelai.dto.Preferences;
@@ -9,6 +11,7 @@ import com.travelai.model.SearchHistory;
 import com.travelai.model.User;
 import com.travelai.repository.UserRepository;
 import io.modelcontextprotocol.client.McpSyncClient;
+import io.modelcontextprotocol.spec.McpSchema;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +30,8 @@ class TravelAgentTest {
   @Mock ChatClient chatClient;
   @Mock McpSyncClient mcpClient;
   @Mock UserRepository userRepo;
+  @Mock ChatClient.ChatClientRequestSpec requestSpec;
+  @Mock ChatClient.CallResponseSpec callResponse;
 
   TravelAgent travelAgent;
 
@@ -222,6 +227,114 @@ class TravelAgentTest {
 
       assertThatThrownBy(() -> travelAgent.chat("unknown", "hello"))
           .isInstanceOf(IllegalStateException.class);
+    }
+  }
+
+  @Nested
+  class ExtractResultData {
+    @Test
+    void returnsStructuredContent() {
+      McpSchema.CallToolResult result = mock(McpSchema.CallToolResult.class);
+      Map<String, Object> data = Map.of("accommodations", accommodations);
+      when(result.structuredContent()).thenReturn(data);
+
+      Map<String, Object> output = travelAgent.extractResultData(result);
+      assertThat(output.get("accommodations")).isEqualTo(accommodations);
+    }
+
+    @Test
+    void parsesTextContent() {
+      McpSchema.CallToolResult result = mock(McpSchema.CallToolResult.class);
+      // structuredContent() must return null first before reaching text parsing part
+      when(result.structuredContent()).thenReturn(null);
+      McpSchema.TextContent text =
+          new McpSchema.TextContent("{\"query\":\"Paris\",\"arrival\":\"2026-04-10\"}");
+      when(result.content()).thenReturn(List.of(text));
+
+      Map<String, Object> output = travelAgent.extractResultData(result);
+
+      assertThat(output.get("query")).isEqualTo("Paris");
+      assertThat(output.get("arrival")).isEqualTo("2026-04-10");
+    }
+
+    @Test
+    void returnsEmptyMapOnInvalidJson() {
+      McpSchema.CallToolResult result = mock(McpSchema.CallToolResult.class);
+      when(result.structuredContent()).thenReturn(null);
+      McpSchema.TextContent text = new McpSchema.TextContent("not valid json");
+      when(result.content()).thenReturn(List.of(text));
+
+      Map<String, Object> output = travelAgent.extractResultData(result);
+      assertThat(output).isEmpty();
+    }
+  }
+
+  @Nested
+  class ExtractPreferences {
+    @Test
+    void extractsAndMergesPreferences() {
+      User user = new User();
+      user.setPreferences("{\"style\":\"beach\"}");
+
+      when(chatClient.prompt()).thenReturn(requestSpec);
+      when(requestSpec.system(anyString())).thenReturn(requestSpec);
+      when(requestSpec.user(anyString())).thenReturn(requestSpec);
+      when(requestSpec.call()).thenReturn(callResponse);
+      when(callResponse.content()).thenReturn("{\"budget\":200}");
+
+      travelAgent.extractPreferences(user, "I want a hotel under €200");
+
+      assertThat(user.getPreferences()).contains("\"budget\":200");
+      assertThat(user.getPreferences()).contains("\"style\":\"beach\"");
+    }
+
+    @Test
+    void silentlyFailsOnBadResponse() {
+      User user = new User();
+      user.setPreferences("{\"style\":\"beach\"}");
+
+      when(chatClient.prompt()).thenReturn(requestSpec);
+      when(requestSpec.system(anyString())).thenReturn(requestSpec);
+      when(requestSpec.user(anyString())).thenReturn(requestSpec);
+      when(requestSpec.call()).thenReturn(callResponse);
+      when(callResponse.content()).thenReturn("invalid json");
+
+      travelAgent.extractPreferences(user, "hello I want to search for a hotel room");
+
+      assertThat(user.getPreferences()).isEqualTo("{\"style\":\"beach\"}");
+    }
+
+    @Test
+    void skipsNullValues() {
+      User user = new User();
+      user.setPreferences("{\"style\":\"beach\"}");
+
+      when(chatClient.prompt()).thenReturn(requestSpec);
+      when(requestSpec.system(anyString())).thenReturn(requestSpec);
+      when(requestSpec.user(anyString())).thenReturn(requestSpec);
+      when(requestSpec.call()).thenReturn(callResponse);
+      when(callResponse.content()).thenReturn("{\"budget\":200,\"style\":null}");
+
+      travelAgent.extractPreferences(user, "Find me a hotel under $200");
+
+      assertThat(user.getPreferences()).contains("\"budget\":200"); // new value added
+      assertThat(user.getPreferences()).contains("\"style\":\"beach\""); // unchanged, null skipped
+    }
+
+    @Test
+    void handlesMarkdownWrappedJson() {
+      User user = new User();
+      user.setPreferences("{}");
+
+      when(chatClient.prompt()).thenReturn(requestSpec);
+      when(requestSpec.system(anyString())).thenReturn(requestSpec);
+      when(requestSpec.user(anyString())).thenReturn(requestSpec);
+      when(requestSpec.call()).thenReturn(callResponse);
+      when(callResponse.content()).thenReturn("```json\n{\"budget\":100}\n```");
+
+      travelAgent.extractPreferences(user, "my budget is $100");
+
+      assertThat(user.getPreferences()).contains("\"budget\":100");
     }
   }
 }

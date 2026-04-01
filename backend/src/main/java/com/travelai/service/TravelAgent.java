@@ -294,7 +294,7 @@ public class TravelAgent {
     }
   }
 
-  private Map<String, Object> extractResultData(McpSchema.CallToolResult result) {
+  Map<String, Object> extractResultData(McpSchema.CallToolResult result) {
     // Prefer structuredContent (already parsed as Map)
     if (result.structuredContent() != null && result.structuredContent() instanceof Map) {
       @SuppressWarnings("unchecked")
@@ -372,7 +372,7 @@ public class TravelAgent {
     return LocalDateTime.now().plusDays(3).toLocalDate().toString();
   }
 
-  private void extractPreferences(User user, String message) {
+  void extractPreferences(User user, String message) {
     try {
       String extractedJson =
           extractionClient.prompt().system(EXTRACTION_PROMPT).user(message).call().content();
