@@ -44,6 +44,24 @@ GOOGLE_CLIENT_SECRET=...
 XAI_API_KEY=...
 ```
 
+### Test Coverage
+
+27 tests across 3 test suites. Coverage reported by JaCoCo.
+
+| Package      | Coverage | Tests                                                                    |
+| ------------ | -------- | ------------------------------------------------------------------------ |
+| `controller` | 100%     | `ChatControllerTest` — all endpoints with auth/unauth, error handling    |
+| `dto`        | 100%     | Covered via controller serialization tests                               |
+| `util`       | 83%      | `UserIdHasherTest` — deterministic hash, hex format, null handling       |
+| `service`    | 22%      | `TravelAgentTest` — reorder ranking, hotel summary, preferences, history |
+| **Total**    | **28%**  |                                                                          |
+
+```bash
+./gradlew test --rerun          # run tests
+```
+
+Report is generated at `build/reports/jacoco/test/html/index.html`
+
 ### Hacks / Interesting Workarounds
 
 **Why not let Grok call MCP tools directly?**
@@ -70,25 +88,30 @@ JPA's default `LAZY` fetch on `@OneToMany` causes `LazyInitializationException` 
 ### Improvements
 
 **UX**
+
 - [ ] Dark/light mode toggle
 - [ ] Show "No results found" state when MCP returns empty
 - [ ] Loading skeleton instead of "Searching hotels..." text
 - [ ] Show hotel count ("Found 8 hotels in Paris")
 
 **Chat Quality**
+
 - [ ] Pass stored preferences as MCP `filters` (e.g. `pool: true`, `breakfastIncluded: true`)
 - [ ] Support `children` and `children_ages` params
 - [ ] Support `hotel_rating` and `review_rating` filters from MCP
 
 **Data**
+
 - [ ] Cap search history (keep last 20, delete older)
 - [ ] Add "clear history" button
 - [ ] Add "clear preferences" button
 
 **Polish**
+
 - [ ] Show extracted search params before results load ("Searching Paris, 20-24 Dec, 2 adults...")
 - [ ] Add a favicon
 - [ ] Add Open Graph meta tags for link previews
 
 **Infra**
+
 - [ ] Add proper test coverage on the CI
